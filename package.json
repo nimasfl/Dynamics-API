@@ -1,10 +1,10 @@
 {
-  "name": "dynapi",
+  "name": "rabama-dynapi",
   "version": "1.0.0",
   "description": "a third party library to use dynamics 365 web api using httpntlm module.",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "nodemon --delay 1 index.js",
+    "start": "nodemon --delay 1 src/index.js",
     "test": "jest"
   },
   "repository": {
@@ -17,5 +17,8 @@
     "WebApi"
   ],
   "author": "Nima Soufiloo",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "2.0.5"
+  }
 }
