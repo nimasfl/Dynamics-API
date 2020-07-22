@@ -1,0 +1,21 @@
+{
+  "name": "dynapi",
+  "version": "1.0.0",
+  "description": "a third party library to use dynamics 365 web api using httpntlm module.",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon --delay 1 index.js",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@[git.rabama.ir:6332]:nima/dynamics-api.git"
+  },
+  "keywords": [
+    "Dynamics",
+    "Microsoft",
+    "WebApi"
+  ],
+  "author": "Nima Soufiloo",
+  "license": "ISC"
+}
