@@ -2,12 +2,11 @@ const RequestHandler = require("./RequestHandler");
 /**
  * @namespace
  * @private {URL}  url                   - The url of the end point.
- * @private {URL}  discoveryUrl     - The discovery url of the end point.
  * @private {String}  username           - The username to authenticate.
  * @private {String}  password           - The password to authenticate.
  * @private {String}  domain             - The domain to authenticate.
  * @private {String}  method             - The method to send the request
- * @private {Boolean} isSpecific        - If the request returns a specific record or not.
+ * @private {Boolean} isSpecific         - If the request returns a specific record or not.
  * @private {Object}  body               - The body of the request.
  */
 class QueryBuilder {
@@ -16,22 +15,13 @@ class QueryBuilder {
    * @returns {QueryBuilder}
    */
   constructor(credentials) {
-    const {
-      url,
-      discoveryUrl,
-      username,
-      password,
-      domain,
-      workstation,
-    } = credentials;
+    const { url, username, password, domain, workstation } = credentials;
     this.url = new URL(url);
-    this.discoveryUrl = new URL(discoveryUrl);
     this.username = username;
     this.password = password;
     this.domain = domain;
     this.workstation = workstation;
     this.method = null; // [get|post|patch|delete]
-    this.action = null; // [get|create|update|delete|action|discover]
     this.isSpecific = true;
     this.fetchXml = false;
     this.hasParameters = false;
@@ -39,13 +29,6 @@ class QueryBuilder {
     return this;
   }
 
-  discover() {
-    if (this.method)
-      throw new Error("Can not specify more than one operation on each query.");
-    this.action = "discover";
-    this.method = "get";
-    return this;
-  }
   /**
    *
    * @param entitySetName {String}
@@ -57,7 +40,6 @@ class QueryBuilder {
     if (!entitySetName)
       throw new Error("Entity name must be specified on create request.");
     this.url.pathname += "/" + entitySetName;
-    this.action = "create";
     this.method = "post";
     return this;
   }
@@ -74,7 +56,6 @@ class QueryBuilder {
       throw new Error("Entity name must be specified on update request.");
     if (!id) throw new Error("Entity id must be specified on update request");
     this.url.pathname += `/${entitySetName}(${id})`;
-    this.action = "update";
     this.method = "patch";
     return this;
   }
@@ -92,7 +73,6 @@ class QueryBuilder {
     if (!id)
       throw new Error("Entity id must be specified for delete operation.");
     this.url.pathname += `/${entitySetName}(${id})`;
-    this.action = "delete";
     this.method = "delete";
     return this;
   }
@@ -113,7 +93,6 @@ class QueryBuilder {
       this.url.pathname += "/" + entitySetName;
       this.isSpecific = false;
     }
-    this.action = "get";
     this.method = "get";
     return this;
   }
@@ -121,11 +100,12 @@ class QueryBuilder {
   /**
    *
    * @param actionName {String}
+   * @param method {"post"|"get"}
    * @param entitySetName {String=}
    * @param id {String=}
    * @returns {QueryBuilder}
    */
-  execute(actionName, entitySetName, id) {
+  execute(actionName, method, entitySetName, id) {
     if (this.method)
       throw new Error("Can not specify more than one operation on each query.");
     if (entitySetName) {
@@ -136,11 +116,10 @@ class QueryBuilder {
       this.url.pathname += `/${entitySetName}(${id})`;
       this.url.pathname += "/" + actionName;
     } else {
-      this.url.pathname += "/" + entitySetName;
+      this.url.pathname += "/" + actionName;
       this.isSpecific = false;
     }
-    this.action = "action";
-    this.method = "post";
+    this.method = method;
     return this;
   }
 
@@ -151,7 +130,7 @@ class QueryBuilder {
   select(...fields) {
     if (this.isSpecific)
       throw new Error("Select is only usable on not specific queries.");
-    if (this.action !== "get")
+    if (this.method !== "get")
       throw new Error("Select is only usable on get method.");
     if (this.fetchXml === true)
       throw new Error("select cannot be combined with fetchXml parameter.");
@@ -168,7 +147,7 @@ class QueryBuilder {
   top(count) {
     if (this.isSpecific)
       throw new Error("Top is only usable on not specific queries.");
-    if (this.action !== "get")
+    if (this.method !== "get")
       throw new Error("Top is only usable on get method.");
     if (this.fetchXml === true)
       throw new Error("top cannot be combined with fetchXml parameter.");
@@ -185,7 +164,7 @@ class QueryBuilder {
   count(number) {
     if (this.isSpecific)
       throw new Error("Top is only usable on not specific queries.");
-    if (this.action !== "get")
+    if (this.method !== "get")
       throw new Error("Top is only usable on get method.");
     if (this.fetchXml === true)
       throw new Error("count cannot be combined with fetchXml parameter.");
@@ -202,7 +181,7 @@ class QueryBuilder {
   filter(filterExpression) {
     if (this.isSpecific)
       throw new Error("Filter is only usable on not specific queries.");
-    if (this.action !== "get")
+    if (this.method !== "get")
       throw new Error("Filter is only usable on get method.");
     if (this.fetchXml === true)
       throw new Error("filter cannot be combined with fetchXml parameter.");
@@ -214,14 +193,14 @@ class QueryBuilder {
   /**
    *
    * @param orderExpression {String}
-   * @param isDesc {Boolean}
+   * @param isDesc {Boolean=}
    * @returns {QueryBuilder}
    */
-  order(orderExpression, isDesc) {
+  order(orderExpression, isDesc = true) {
     const desc = isDesc ? "desc" : "";
     if (this.isSpecific)
       throw new Error("Order is only usable on not specific queries.");
-    if (this.action !== "get")
+    if (this.method !== "get")
       throw new Error("Order is only usable on get method.");
     if (this.fetchXml === true)
       throw new Error("order cannot be combined with fetchXml parameter.");
@@ -238,7 +217,7 @@ class QueryBuilder {
   fetch(xml) {
     if (this.isSpecific)
       throw new Error("FetchXml is only usable on not specific queries.");
-    if (this.action !== "get")
+    if (this.method !== "get")
       throw new Error("FetchXml is only usable on get method.");
     if (this.hasParameters === true)
       throw new Error("FetchXml cannot be combined with other parameters.");
@@ -263,8 +242,9 @@ class QueryBuilder {
   /**
    *
    * @returns {Promise<Response>}
+   * @param {String=} subPath
    */
-  async send() {
+  async send(subPath) {
     if (!this.method)
       throw new Error("Cannot send request when method is not defined.");
     if (
@@ -272,7 +252,7 @@ class QueryBuilder {
       Object.keys(this.body).length === 0
     )
       throw new Error("Body of create and update methods cannot be empty.");
-    if (this.action === "discover") this.url = this.discoveryUrl;
+    if (subPath) this.url.pathname += subPath;
     return await RequestHandler(this);
   }
 }

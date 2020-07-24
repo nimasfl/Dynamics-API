@@ -1,14 +1,12 @@
 class Credential {
   /**
    *
-   * @typedef {{url: URL, discoveryUrl: URL, username: String, password: String, domain: String, version: String, workstation: String}} Credential
    * @param {string} url
    * @param {String} username
    * @param {String} password
    * @param {String} domain
    * @param {String=} version
    * @param {String=} workstation
-   * @returns Credential
    */
   constructor(
     url,
@@ -24,9 +22,6 @@ class Credential {
     if (!domain) throw new Error("Domain parameter is not valid.");
     try {
       this.url = new URL(`${url}/api/data/v${version}`);
-      this.discoveryUrl = new URL(
-        `${this.url.origin}/api/discovery/v${version}/Instances`
-      );
     } catch (err) {
       throw new Error("Url parameter is not formatted correctly.");
     }

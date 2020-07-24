@@ -9,11 +9,14 @@ const { isJson, createMessage } = require("./utility");
 const RequestHandler = async (query) => {
   return new Promise((resolve, reject) => {
     try {
+      if (process.env.DEBUG.toLowerCase().includes("dynapi")) {
+        console.log(`Url: ${this.query.url}`);
+        console.log(`Body: ${JSON.stringify(this.query.body, null, 2)}`);
+      }
       let status = null;
       let statusCode = null;
       let rawMessage = null;
       let data = null;
-      let headers = null;
       http[query.method](
         {
           url: query.url.href,
@@ -32,11 +35,12 @@ const RequestHandler = async (query) => {
         (err, res) => {
           if (res && res.statusCode === 200) {
             if (!res.body) data = res;
-            else if (isJson(res.body)) data = JSON.parse(res.body).value;
+            else if (isJson(res.body) && JSON.parse(res.body).value)
+              data = JSON.parse(res.body).value;
+            else if (isJson(res.body)) data = JSON.parse(res.body);
             else data = res.body;
             status = true;
             statusCode = res.statusCode;
-            headers = res.headers || null;
           } else if (res && res.statusCode === 204) {
             if (res.headers && res.headers["odata-entityid"])
               data = res.headers["odata-entityid"]
@@ -44,7 +48,6 @@ const RequestHandler = async (query) => {
                 .replace(")", "");
             status = true;
             statusCode = res.statusCode;
-            headers = res.headers || null;
           } else if (res) {
             if (isJson(res.body) && JSON.parse(res.body).error) {
               rawMessage = JSON.parse(res.body).error.message;
@@ -56,20 +59,17 @@ const RequestHandler = async (query) => {
             data = null;
             status = false;
             statusCode = res.statusCode;
-            headers = res.headers || null;
           } else if (err) {
             rawMessage = err.message || err.toString();
             data = null;
             status = false;
             statusCode = err.code || rawMessage.split(" ")[0];
-            headers = null;
           }
           return resolve({
             status,
             statusCode,
             rawMessage,
             data,
-            headers,
             message: createMessage(statusCode),
           });
         }

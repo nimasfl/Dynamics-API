@@ -1,22 +1,18 @@
 const Credential = require("./Credential");
 const QueryBuilder = require("./QueryBuilder");
-
+const credential = new Credential(
+  "http://192.168.10.100/iromart",
+  "crmadmin",
+  "Crm1234@@",
+  "iromart"
+);
 const Do = async () => {
-  try {
-    const credential = new Credential(
-      "http://192.168.10.100/finaltest",
-      "crmadmin",
-      "Crm1234@@",
-      "iromart"
-    );
-    const query = await new QueryBuilder(credential)
-      .create("accounts")
-      .set({ name: "asd" })
-      .send();
-    console.log("query: ", query);
-  } catch (err) {
-    console.log("in catch: ");
-    console.log(err);
-  }
+  const res = await new QueryBuilder(credential)
+    .execute("WhoAmI", "get")
+    .send();
+  // const res = await new QueryBuilder(credential).get("accounts").top(1).send();
+  console.log(res);
 };
+
+module.exports = { Credential, QueryBuilder };
 Do();
