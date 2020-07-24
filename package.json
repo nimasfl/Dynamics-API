@@ -20,5 +20,8 @@
   "license": "ISC",
   "devDependencies": {
     "prettier": "2.0.5"
+  },
+  "dependencies": {
+    "httpntlm": "^1.7.6"
   }
 }

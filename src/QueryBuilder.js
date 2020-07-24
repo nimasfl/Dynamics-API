@@ -2,13 +2,13 @@ const RequestHandler = require("./RequestHandler");
 
 /**
  * @namespace
- * @property {URL}  url                   - The default values for parties.
- * @property {String}  username           - The default number of players.
- * @property {String}  password           - The default level for the party.
- * @property {String}  domain             - The default treasure.
- * @property {String}  method             - How much gold the party starts with.
- * @property {Boolean}  isSpecific        - How much gold the party starts with.
- * @property {Object}  body               - How much gold the party starts with.
+ * @private {URL}  url                   - The url of the end point.
+ * @private {String}  username           - The username to authenticate.
+ * @private {String}  password           - The password to authenticate.
+ * @private {String}  domain             - The domain to authenticate.
+ * @private {String}  method             - The method to send the request
+ * @private {Boolean}  isSpecific        - If the request returns a specific record or not.
+ * @private {Object}  body               - The body of the request.
  */
 class QueryBuilder {
   /**
@@ -16,12 +16,13 @@ class QueryBuilder {
    * @returns {QueryBuilder}
    */
   constructor(credentials) {
-    const { url, username, password, domain } = credentials;
+    const { url, username, password, domain, workstation } = credentials;
     this.url = new URL(url);
     this.username = username;
     this.password = password;
     this.domain = domain;
-    this.method = null; // [create || update || read || delete]
+    this.workstation = workstation;
+    this.method = null; // [create || update || get || delete]
     this.isSpecific = true;
     this.body = {};
     return this;
@@ -34,25 +35,27 @@ class QueryBuilder {
    */
   create(entitySetName) {
     if (this.method)
-      throw new Error("Can not define more than one operation on each query.");
+      throw new Error("Can not specify more than one operation on each query.");
     if (!entitySetName)
-      throw new Error("Entity name must be defined on create request.");
-    this.url = new URL(entitySetName, this.url);
-    this.method = "create";
+      throw new Error("Entity name must be specified on create request.");
+    this.url.pathname += "/" + entitySetName;
+    this.method = "post";
     return this;
   }
   /**
    *
    * @param entitySetName {String}
+   * @param id {String}
    * @returns {QueryBuilder}
    */
-  update(entitySetName) {
+  update(entitySetName, id) {
     if (this.method)
-      throw new Error("Can not define more than one operation on each query.");
+      throw new Error("Can not specify more than one operation on each query.");
     if (!entitySetName)
-      throw new Error("Entity name must be defined on update request.");
-    this.url = new URL(entitySetName, this.url);
-    this.method = "update";
+      throw new Error("Entity name must be specified on update request.");
+    if (!id) throw new Error("Entity id must be specified on update request");
+    this.url.pathname += `/${entitySetName}(${id})`;
+    this.method = "patch";
     return this;
   }
   /**
@@ -63,11 +66,12 @@ class QueryBuilder {
    */
   delete(entitySetName, id) {
     if (this.method)
-      throw new Error("Can not define more than one operation on each query.");
+      throw new Error("Can not specify more than one operation on each query.");
     if (!entitySetName)
-      throw new Error("Entity name must be defined on delete request.");
-    if (!id) throw new Error("Id must be specified for delete operation.");
-    this.url = new URL(`${entitySetName}(${id})`, this.url);
+      throw new Error("Entity name must be specified on delete request.");
+    if (!id)
+      throw new Error("Entity id must be specified for delete operation.");
+    this.url.pathname += `/${entitySetName}(${id})`;
     this.method = "delete";
     return this;
   }
@@ -77,18 +81,18 @@ class QueryBuilder {
    * @param id {String=}
    * @returns {QueryBuilder}
    */
-  read(entitySetName, id) {
+  get(entitySetName, id) {
     if (this.method)
-      throw new Error("Can not define more than one operation on each query.");
+      throw new Error("Can not specify more than one operation on each query.");
     if (!entitySetName)
-      throw new Error("Entity name must be defined on read request.");
+      throw new Error("Entity name must be specified on get request.");
     if (id) {
-      this.url = new URL(`${entitySetName}(${id})`, this.url);
+      this.url.pathname += `/${entitySetName}(${id})`;
     } else {
-      this.url = new URL(entitySetName, this.url);
+      this.url.pathname += "/" + entitySetName;
       this.isSpecific = false;
     }
-    this.method = "read";
+    this.method = "get";
     return this;
   }
 
@@ -101,19 +105,19 @@ class QueryBuilder {
    */
   execute(actionName, entitySetName, id) {
     if (this.method)
-      throw new Error("Can not define more than one operation on each query.");
+      throw new Error("Can not specify more than one operation on each query.");
     if (entitySetName) {
       if (!id)
         throw new Error(
           "Record id must be specified when setting entitySetName value."
         );
-      this.url = new URL(`${entitySetName}(${id})`, this.url);
-      this.url = new URL(actionName, this.url);
+      this.url.pathname += `/${entitySetName}(${id})`;
+      this.url.pathname += "/" + actionName;
     } else {
-      this.url = new URL(actionName, this.url);
+      this.url.pathname += "/" + entitySetName;
       this.isSpecific = false;
     }
-    this.method = "action";
+    this.method = "post";
     return this;
   }
 
@@ -125,8 +129,8 @@ class QueryBuilder {
   select(...fields) {
     if (this.isSpecific)
       throw new Error("Select is only usable on not specific queries.");
-    if (this.method !== "read")
-      throw new Error("Select is only usable on read method.");
+    if (this.method !== "get")
+      throw new Error("Select is only usable on get method.");
     this.url.searchParams.append("$select", fields.toString());
     return this;
   }
@@ -139,8 +143,8 @@ class QueryBuilder {
   top(count) {
     if (this.isSpecific)
       throw new Error("Top is only usable on not specific queries.");
-    if (this.method !== "read")
-      throw new Error("Top is only usable on read method.");
+    if (this.method !== "get")
+      throw new Error("Top is only usable on get method.");
     this.url.searchParams.append("$top", count.toString());
     return this;
   }
@@ -153,32 +157,39 @@ class QueryBuilder {
   filter(filterExpression) {
     if (this.isSpecific)
       throw new Error("Filter is only usable on not specific queries.");
-    if (this.method !== "read")
-      throw new Error("Filter is only usable on read method.");
+    if (this.method !== "get")
+      throw new Error("Filter is only usable on get method.");
     this.url.searchParams.append("$filter", filterExpression);
     return this;
   }
 
+  /**
+   *
+   * @param orderExpression {String}
+   * @param isDesc {Boolean}
+   * @returns {QueryBuilder}
+   */
   order(orderExpression, isDesc) {
     const desc = isDesc ? "desc" : "";
     if (this.isSpecific)
       throw new Error("Order is only usable on not specific queries.");
-    if (this.method !== "read")
-      throw new Error("Order is only usable on read method.");
+    if (this.method !== "get")
+      throw new Error("Order is only usable on get method.");
     this.url.searchParams.append("$orderby", `${orderExpression} ${desc}`);
+    return this;
   }
 
   /**
    *
-   * @param data {Object}
+   * @param {Object} data
    * @returns {QueryBuilder}
    */
-  setBody(data) {
-    if (!["update", "create"].includes(this.method))
+  set(data) {
+    if (!["patch", "post"].includes(this.method))
       throw new Error(
-        "setBody method is only usable on create and update methods."
+        "set method is only usable on create and update methods."
       );
-    this.body(data);
+    this.body = data;
     return this;
   }
 
