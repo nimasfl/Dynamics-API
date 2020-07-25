@@ -12,9 +12,14 @@
     "url": "git@[git.rabama.ir:6332]:nima/dynamics-api.git"
   },
   "keywords": [
-    "Dynamics",
-    "Microsoft",
-    "WebApi"
+    "dynamics",
+    "microsoft",
+    "webapi",
+    "web-api",
+    "dynamics-crm",
+    "dynamics-crm-webapi",
+    "dynamics-crm-api",
+    "dynamics-365"
   ],
   "author": "Nima Soufiloo",
   "license": "ISC",
