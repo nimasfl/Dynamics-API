@@ -9,7 +9,7 @@ const { isJson, createMessage } = require("./utility");
 const RequestHandler = async (query) => {
   return new Promise((resolve, reject) => {
     try {
-      if (process.env.DEBUG.toLowerCase().includes("dynapi")) {
+      if (process.env.DEBUG && process.env.DEBUG.toLowerCase().includes("dynapi")) {
         console.log(`Url: ${this.query.url}`);
         console.log(`Body: ${JSON.stringify(this.query.body, null, 2)}`);
       }
