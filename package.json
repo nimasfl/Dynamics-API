@@ -1,6 +1,6 @@
 {
   "name": "@rabama/dynapi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "a third party library to use dynamics 365 web api using httpntlm module.",
   "main": "src/index.js",
   "scripts": {
