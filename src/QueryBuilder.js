@@ -262,6 +262,7 @@ class QueryBuilder {
    */
   async sendRawGetRequest(url) {
     this.url.pathname += url
+    this.method = 'get'
     return await RequestHandler(this)
   }
 }

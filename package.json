@@ -1,6 +1,6 @@
 {
   "name": "@nimasfl/dynapi",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "a third party library to use dynamics 365 web api using httpntlm module.",
   "main": "src/index.js",
   "scripts": {
