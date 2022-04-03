@@ -255,6 +255,15 @@ class QueryBuilder {
     if (subPath) this.url.pathname += subPath;
     return await RequestHandler(this);
   }
+
+  /**
+   * @return {Promise}
+   * @param {String} url
+   */
+  async sendRawGetRequest(url) {
+    this.url.pathname += url
+    return await RequestHandler(this)
+  }
 }
 
 module.exports = QueryBuilder;
